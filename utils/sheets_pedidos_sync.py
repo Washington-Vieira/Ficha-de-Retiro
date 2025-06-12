@@ -26,38 +26,33 @@ class SheetsPedidosSync:
                 'sheets_credentials': None,
                 'sheets_url': None
             }
-            # 1. Tenta carregar do config.json (local)
-            if os.path.exists(self.config_file):
+            # 1. Se estiver no Streamlit Cloud, priorize o st.secrets
+            if st is not None and hasattr(st, 'secrets') and 'sheets_credentials' in st.secrets:
+                cred = st.secrets['sheets_credentials']
+                if isinstance(cred, str):
+                    try:
+                        cred = json.loads(cred)
+                    except Exception:
+                        pass
+                self.config['sheets_credentials'] = cred
+                if 'sheets_url' in st.secrets:
+                    self.SPREADSHEET_URL = st.secrets['sheets_url']
+                else:
+                    self.SPREADSHEET_URL = ""
+            # 2. Se não estiver no Cloud, tente o config.json local
+            elif os.path.exists(self.config_file):
                 with open(self.config_file, 'r') as f:
                     self.config = json.load(f)
-                    if not self.SPREADSHEET_URL:
-                        self.SPREADSHEET_URL = self.config.get('sheets_url', '')
-            # 2. Se não encontrar as credenciais, tenta dos secrets do Streamlit Cloud
-            if (not self.config.get('sheets_credentials')) and st is not None and hasattr(st, 'secrets'):
-                if 'sheets_credentials' in st.secrets:
-                    cred = st.secrets['sheets_credentials']
-                    if isinstance(cred, str):
-                        try:
-                            cred = json.loads(cred)
-                        except Exception:
-                            pass
-                    self.config['sheets_credentials'] = cred
-                if not self.SPREADSHEET_URL and 'sheets_url' in st.secrets:
-                    self.SPREADSHEET_URL = st.secrets['sheets_url']
-            # 3. Se ainda não tem URL, tenta pegar do config
-            if not self.SPREADSHEET_URL:
-                self.SPREADSHEET_URL = self.config.get('sheets_url', '')
-            # 4. Se não tem config.json, salva o default
-            if not os.path.exists(self.config_file):
-                self.save_config()
+                    self.SPREADSHEET_URL = self.config.get('sheets_url', '')
+            else:
+                self.SPREADSHEET_URL = ""
         except Exception as e:
             if st:
                 st.error(f"Erro ao carregar configurações: {str(e)}")
             else:
                 print(f"Erro ao carregar configurações: {str(e)}")
             self.config = {'sheets_credentials': None}
-            if not self.SPREADSHEET_URL:
-                self.SPREADSHEET_URL = ''
+            self.SPREADSHEET_URL = ""
 
     def save_config(self):
         """Salva configuração atual"""
