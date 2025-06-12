@@ -22,19 +22,33 @@ class SheetsPedidosSync:
     def load_config(self):
         """Carrega as credenciais do Google Sheets"""
         try:
+            self.config = {
+                'sheets_credentials': None,
+                'sheets_url': ''
+            }
+            # 1. Tenta carregar do config.json (local)
             if os.path.exists(self.config_file):
                 with open(self.config_file, 'r') as f:
                     self.config = json.load(f)
-                    # Só sobrescreve se não veio do secrets
                     if not self.SPREADSHEET_URL:
                         self.SPREADSHEET_URL = self.config.get('sheets_url', '')
-            else:
-                self.config = {
-                    'sheets_credentials': None,
-                    'sheets_url': ''
-                }
-                if not self.SPREADSHEET_URL:
-                    self.SPREADSHEET_URL = self.config['sheets_url']
+            # 2. Se não encontrar as credenciais, tenta dos secrets do Streamlit Cloud
+            if (not self.config.get('sheets_credentials')) and st is not None and hasattr(st, 'secrets'):
+                if 'sheets_credentials' in st.secrets:
+                    cred = st.secrets['sheets_credentials']
+                    if isinstance(cred, str):
+                        try:
+                            cred = json.loads(cred)
+                        except Exception:
+                            pass
+                    self.config['sheets_credentials'] = cred
+                if not self.SPREADSHEET_URL and 'sheets_url' in st.secrets:
+                    self.SPREADSHEET_URL = st.secrets['sheets_url']
+            # 3. Se ainda não tem URL, tenta pegar do config
+            if not self.SPREADSHEET_URL:
+                self.SPREADSHEET_URL = self.config.get('sheets_url', '')
+            # 4. Se não tem config.json, salva o default
+            if not os.path.exists(self.config_file):
                 self.save_config()
         except Exception as e:
             if st:
@@ -59,9 +73,8 @@ class SheetsPedidosSync:
     def initialize_client(self):
         """Inicializa o cliente do Google Sheets"""
         try:
-            # Usar apenas as credenciais do config.json
+            # Usar as credenciais do config.json ou dos secrets
             creds = self.config.get('sheets_credentials')
-            
             if creds:
                 if not creds.get('client_email'):
                     if st:
@@ -84,9 +97,9 @@ class SheetsPedidosSync:
                     self.client = None
             else:
                 if st:
-                    st.error('Credenciais do Google Sheets não encontradas no config.json.')
+                    st.error('Credenciais do Google Sheets não encontradas no config.json nem nos secrets do Streamlit Cloud.')
                 else:
-                    print('Credenciais do Google Sheets não encontradas no config.json.')
+                    print('Credenciais do Google Sheets não encontradas no config.json nem nos secrets do Streamlit Cloud.')
                 self.client = None
         except Exception as e:
             if st:
