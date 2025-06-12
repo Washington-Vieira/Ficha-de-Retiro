@@ -265,6 +265,49 @@ class PedidoFormView:
                     )
                     
                     st.success(f"✅ Pedido {numero_pedido} criado com sucesso!")
+                    
+                    # Gerar PDF do pedido
+                    from fpdf import FPDF
+                    pedido_dict = {
+                        'info': {
+                            'Numero_Pedido': numero_pedido,
+                            'Data': datetime.now().strftime("%d/%m/%Y %H:%M"),
+                            'Serial': pedido_info['serial'],
+                            'Maquina': pedido_info['maquina'],
+                            'Posto': pedido_info['posto'],
+                            'Coordenada': pedido_info['coordenada'],
+                            'Modelo': pedido_info['modelo'],
+                            'OT': pedido_info['ot'],
+                            'Semiacabado': pedido_info['semiacabado'],
+                            'Pagoda': pedido_info['pagoda'],
+                            'Urgente': pedido_info['urgente'],
+                            'Solicitante': pedido_info['solicitante'],
+                            'Observacoes': pedido_info['observacoes']
+                        },
+                        'status': 'PENDENTE'
+                    }
+                    
+                    texto = self.formatar_pedido_para_impressao(pedido_dict)
+                    pdf = FPDF()
+                    pdf.add_page()
+                    pdf.set_font("Arial", size=10)
+                    pdf.set_auto_page_break(auto=True, margin=15)
+                    
+                    line_height = 8
+                    for linha in texto.split('\n'):
+                        if linha.strip():
+                            pdf.cell(0, line_height, txt=linha.strip(), ln=True)
+                        else:
+                            pdf.ln(2)
+                    
+                    pdf_bytes = pdf.output(dest='S').encode('latin1')
+                    st.download_button(
+                        label="📥 Baixar PDF do Pedido",
+                        data=pdf_bytes,
+                        file_name=f"pedido_{numero_pedido}.pdf",
+                        mime="application/pdf"
+                    )
+                    
                     st.rerun()
                     
                 except ValueError as ve:
@@ -417,6 +460,42 @@ class PedidoFormView:
         """Limpa a lista de códigos já processados"""
         if 'codigos_processados' in st.session_state:
             st.session_state.codigos_processados.clear()
+
+    def formatar_pedido_para_impressao(self, pedido: dict) -> str:
+        """Formata os detalhes do pedido para impressão"""
+        info = pedido['info']
+        
+        texto = f"""=================================================
+                PEDIDO DE REQUISIÇÃO
+=================================================
+Número: {info['Numero_Pedido']}    Data: {info['Data']}    Status: {pedido['status']}
+
+INFORMAÇÕES DO PRODUTO:
+-------------------------------------------------
+Serial: {info['Serial']}    Máquina: {info['Maquina']}
+Posto: {info['Posto']}    Coordenada: {info['Coordenada']}
+
+DETALHES DO ITEM:
+-------------------------------------------------
+Modelo: {info['Modelo']}    OT: {info['OT']}
+Semiacabado: {info['Semiacabado']}    Pagoda: {info['Pagoda']}
+
+INFORMAÇÕES ADICIONAIS:
+-------------------------------------------------
+Solicitante: {info['Solicitante']}
+Urgente: {"Sim" if info.get('Urgente') == True else "Não"}
+Observações: {info.get('Observacoes', '')}
+
+-------------------------------------------------
+
+Assinaturas:
+
+Separador: _____________________________
+Coletador: _____________________________
+
+Impresso em: {datetime.now().strftime('%d/%m/%Y %H:%M:%S')}
+"""
+        return texto
 
     def __del__(self):
         # Garantir que o lock seja liberado ao encerrar, se foi adquirido

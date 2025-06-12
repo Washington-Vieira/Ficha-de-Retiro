@@ -297,11 +297,11 @@ class PedidoHistoricoView:
 
             with col2:
                 st.markdown("##### Detalhes do Pedido")
-                # Encontrar o pedido selecionado
+                pedido_selecionado = None
                 for idx, row in edited_df.iterrows():
                     if row['Selecionar']:
                         status_atual = row['Status'].upper()
-                        # Mostrar detalhes do pedido selecionado com fonte menor
+                        pedido_selecionado = row
                         st.markdown('<div class="pedido-detalhes">', unsafe_allow_html=True)
                         col1_details, col2_details = st.columns(2)
                         with col1_details:
@@ -326,6 +326,54 @@ class PedidoHistoricoView:
                 else:
                     st.info("👈 Selecione um pedido na tabela para ver os detalhes")
 
+                # Botão de gerar PDF
+                if pedido_selecionado is not None:
+                    if st.button('📄 Gerar PDF do Pedido', key='gerar_pdf_pedido'):
+                        # Montar dicionário no formato esperado por formatar_pedido_para_impressao
+                        pedido_dict = {
+                            'info': {
+                                'Numero_Pedido': pedido_selecionado['Número'],
+                                'Data': pedido_selecionado['Data'],
+                                'Serial': pedido_selecionado['Serial'],
+                                'Maquina': pedido_selecionado['Máquina'],
+                                'Posto': pedido_selecionado['Posto'],
+                                'Coordenada': pedido_selecionado['Coordenada'],
+                                'Modelo': pedido_selecionado['Modelo'],
+                                'OT': pedido_selecionado['OT'],
+                                'Semiacabado': pedido_selecionado['Semiacabado'],
+                                'Pagoda': pedido_selecionado['Pagoda'],
+                                'Urgente': None,  # Adapte se necessário
+                                'Responsavel_Separacao': None,
+                                'Data_Separacao': None,
+                                'Responsavel_Coleta': None,
+                                'Data_Coleta': None
+                            },
+                            'status': pedido_selecionado['Status']
+                        }
+                        texto = self.formatar_pedido_para_impressao(pedido_dict)
+                        # Gerar PDF em memória
+                        pdf = FPDF()
+                        pdf.add_page()
+                        pdf.set_font("Arial", size=10)  # Reduzindo o tamanho da fonte
+                        pdf.set_auto_page_break(auto=True, margin=15)  # Ajustando margem
+                        
+                        # Ajustar o espaçamento entre linhas
+                        line_height = 8
+                        
+                        for linha in texto.split('\n'):
+                            if linha.strip():  # Só adiciona linhas não vazias
+                                pdf.cell(0, line_height, txt=linha.strip(), ln=True)
+                            else:
+                                pdf.ln(2)  # Espaçamento menor para linhas vazias
+                                
+                        pdf_bytes = pdf.output(dest='S').encode('latin1')
+                        st.download_button(
+                            label="📥 Baixar PDF do Pedido",
+                            data=pdf_bytes,
+                            file_name=f"pedido_{pedido_selecionado['Número']}.pdf",
+                            mime="application/pdf"
+                        )
+
         except Exception as e:
             st.error(f"Erro ao carregar pedidos: {str(e)}")
             st.exception(e)  # Isso mostrará o traceback completo para debug
@@ -342,23 +390,17 @@ class PedidoHistoricoView:
         texto = f"""=================================================
                 PEDIDO DE REQUISIÇÃO
 =================================================
-Número: {info['Numero_Pedido']}
-Data: {info['Data']}
-Status: {pedido['status']}
+Número: {info['Numero_Pedido']}    Data: {info['Data']}    Status: {pedido['status']}
 
 INFORMAÇÕES DO PRODUTO:
 -------------------------------------------------
-Serial: {info['Serial']}
-Máquina: {info['Maquina']}
-Posto: {info['Posto']}
-Coordenada: {info['Coordenada']}
+Serial: {info['Serial']}    Máquina: {info['Maquina']}
+Posto: {info['Posto']}    Coordenada: {info['Coordenada']}
 
 DETALHES DO ITEM:
 -------------------------------------------------
-Modelo: {info['Modelo']}
-OT: {info['OT']}
-Semiacabado: {info['Semiacabado']}
-Pagoda: {info['Pagoda']}
+Modelo: {info['Modelo']}    OT: {info['OT']}
+Semiacabado: {info['Semiacabado']}    Pagoda: {info['Pagoda']}
 
 FLUXO DE PROCESSAMENTO:
 -------------------------------------------------
@@ -368,14 +410,12 @@ Urgente: {"Sim" if info.get('Urgente') == True else "Não"}
         # Adicionar informações de separação se existirem
         if info.get('Responsavel_Separacao'):
             texto += f"""
-Responsável Separação: {info['Responsavel_Separacao']}
-Data Separação: {info['Data_Separacao']}"""
+Responsável Separação: {info['Responsavel_Separacao']}    Data: {info['Data_Separacao']}"""
         
         # Adicionar informações de coleta se existirem
         if info.get('Responsavel_Coleta'):
             texto += f"""
-Responsável Coleta: {info['Responsavel_Coleta']}
-Data Coleta: {info['Data_Coleta']}"""
+Responsável Coleta: {info['Responsavel_Coleta']}    Data: {info['Data_Coleta']}"""
         
         texto += "\n-------------------------------------------------"
         
