@@ -8,7 +8,7 @@ from datetime import datetime
 
 class SheetsPedidosSync:
     def __init__(self):
-        self.config_file = "config.json"
+        self.config_file = "secrets"
         self.SCOPES = ['https://www.googleapis.com/auth/spreadsheets']
         self.SPREADSHEET_ID = '13iIYn9cPLfYZHn3BIgfUEHd4rS2j2_e6QyCIY8uwRqQ'
         self.load_config()
