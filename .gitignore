@@ -1,0 +1,47 @@
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+.env
+.venv/
+venv/
+
+# VS Code
+.vscode/
+
+# Streamlit
+.streamlit/secrets.toml
+.secrets.toml
+
+# Arquivo de backup
+pedidos/backup/
+backup/
+
+# Arquivos temporários
+*.tmp
+*.temp
+repo_temp/
+temp/
+
+# Configurações locais
+config.json
+
+# Arquivos de mapeamento
+pedidos/Mapeamento de Racks - Cabos.xlsx
+
+dist
+build
+pedido_local_desktop.spec
+temp_importar_atualizar_paco.xlsx
+leituras_pendentes.json
+pedido_local_desktop.py
+pedido_local.py
+pedido_local_desktop.exe
+pedido_local.exe
+pedido_local_desktop.spec
+pedido_local.spec
+pedido_local_desktop.spec.exe
+pedido_local.spec.exe
+pedido_local_desktop.spec.exe.manifest
+pedido_local.spec.exe.manifest
+pedido_local_desktop.spec.exe.manifest.exe
