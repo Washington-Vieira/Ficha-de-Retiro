@@ -8,6 +8,7 @@ import json
 import atexit
 import contextlib
 import sys
+import base64
 if sys.platform == "win32":
     import msvcrt  # Para Windows
 
@@ -307,11 +308,13 @@ class PedidoFormView:
                     elif isinstance(pdf_bytes, bytearray):
                         pdf_bytes = bytes(pdf_bytes)
                     
+                    # Usar o download_button do Streamlit
                     st.download_button(
-                        label="📥 Baixar PDF do Pedido",
+                        label="📥 Baixar PDF",
                         data=pdf_bytes,
                         file_name=f"pedido_{numero_pedido}.pdf",
-                        mime="application/pdf"
+                        mime="application/pdf",
+                        key=f"download_pdf_{numero_pedido}"
                     )
                     
                     st.rerun()
@@ -485,19 +488,6 @@ DETALHES DO ITEM:
 -------------------------------------------------
 Modelo: {info['Modelo']}    OT: {info['OT']}
 Semiacabado: {info['Semiacabado']}    Pagoda: {info['Pagoda']}
-
-INFORMAÇÕES ADICIONAIS:
--------------------------------------------------
-Solicitante: {info['Solicitante']}
-Urgente: {"Sim" if info.get('Urgente') == True else "Não"}
-Observações: {info.get('Observacoes', '')}
-
--------------------------------------------------
-
-Assinaturas:
-
-Separador: _____________________________
-Coletador: _____________________________
 
 Impresso em: {datetime.now().strftime('%d/%m/%Y %H:%M:%S')}
 """

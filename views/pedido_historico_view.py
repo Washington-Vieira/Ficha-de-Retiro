@@ -7,6 +7,7 @@ import os
 from pathlib import Path
 from fpdf import FPDF
 from utils.print_manager import PrintManager
+import base64
 
 class PedidoHistoricoView:
     def __init__(self, controller: PedidoController):
@@ -373,11 +374,13 @@ class PedidoHistoricoView:
                         elif isinstance(pdf_bytes, bytearray):
                             pdf_bytes = bytes(pdf_bytes)
                         
+                        # Usar o download_button do Streamlit
                         st.download_button(
-                            label="📥 Baixar PDF do Pedido",
+                            label="📥 Baixar PDF",
                             data=pdf_bytes,
                             file_name=f"pedido_{pedido_selecionado['Número']}.pdf",
-                            mime="application/pdf"
+                            mime="application/pdf",
+                            key=f"download_pdf_{pedido_selecionado['Número']}"
                         )
 
         except Exception as e:
@@ -394,7 +397,7 @@ class PedidoHistoricoView:
         info = pedido['info']
         
         texto = f"""=================================================
-                PEDIDO DE REQUISIÇÃO
+                PEDIDO DE REQUISIÇÃO 
 =================================================
 Número: {info['Numero_Pedido']}    Data: {info['Data']}    Status: {pedido['status']}
 
@@ -408,28 +411,8 @@ DETALHES DO ITEM:
 Modelo: {info['Modelo']}    OT: {info['OT']}
 Semiacabado: {info['Semiacabado']}    Pagoda: {info['Pagoda']}
 
-FLUXO DE PROCESSAMENTO:
--------------------------------------------------
-Urgente: {"Sim" if info.get('Urgente') == True else "Não"}
+Impresso em: {datetime.now().strftime('%d/%m/%Y %H:%M:%S')}
 """
-        
-        # Adicionar informações de separação se existirem
-        if info.get('Responsavel_Separacao'):
-            texto += f"""
-Responsável Separação: {info['Responsavel_Separacao']}    Data: {info['Data_Separacao']}"""
-        
-        # Adicionar informações de coleta se existirem
-        if info.get('Responsavel_Coleta'):
-            texto += f"""
-Responsável Coleta: {info['Responsavel_Coleta']}    Data: {info['Data_Coleta']}"""
-        
-        texto += "\n-------------------------------------------------"
-        
-        texto += "\n\nAssinaturas:\n"
-        texto += "\nSeparador: _____________________________"
-        texto += "\nColetador: _____________________________"
-        texto += f"\n\nImpresso em: {datetime.now().strftime('%d/%m/%Y %H:%M:%S')}"
-        
         return texto
 
     def _mostrar_tabela_pedidos(self, df: pd.DataFrame):
