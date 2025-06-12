@@ -297,16 +297,13 @@ class PedidoHistoricoView:
 
             with col2:
                 st.markdown("##### Detalhes do Pedido")
-                
-                # Encontrar o pedido selecionado e verificar mudanças de status
+                # Encontrar o pedido selecionado
                 for idx, row in edited_df.iterrows():
                     if row['Selecionar']:
                         status_atual = row['Status'].upper()
-                        
                         # Mostrar detalhes do pedido selecionado com fonte menor
                         st.markdown('<div class="pedido-detalhes">', unsafe_allow_html=True)
                         col1_details, col2_details = st.columns(2)
-                        
                         with col1_details:
                             st.markdown(f"""
                             **Número:** {row['Número']}<br>
@@ -316,7 +313,6 @@ class PedidoHistoricoView:
                             **Posto:** {row['Posto']}<br>
                             **Coordenada:** {row['Coordenada']}
                             """, unsafe_allow_html=True)
-                        
                         with col2_details:
                             st.markdown(f"""
                             **Modelo:** {row['Modelo']}<br>
@@ -325,32 +321,6 @@ class PedidoHistoricoView:
                             **Pagoda:** {row['Pagoda']}<br>
                             **Status Atual:** {status_atual}
                             """, unsafe_allow_html=True)
-                        st.markdown('</div>', unsafe_allow_html=True)
-                        
-                        # Adicionar seletor de status
-                        st.markdown('<div class="status-select-container">', unsafe_allow_html=True)
-                        st.markdown('<div class="status-select-label">Alterar Status</div>', unsafe_allow_html=True)
-                        novo_status = st.selectbox(
-                            "Novo Status",
-                            options=["PENDENTE", "PROCESSO", "CONCLUÍDO"],
-                            index=["PENDENTE", "PROCESSO", "CONCLUÍDO"].index(status_atual),
-                            key="status_selector",
-                            label_visibility="collapsed"
-                        )
-                        
-                        # Botão para atualizar status
-                        if novo_status != status_atual:
-                            if st.button("💾 Salvar Alteração", type="primary"):
-                                try:
-                                    self.controller.atualizar_status_pedido(
-                                        numero_pedido=row['Número'],
-                                        novo_status=novo_status,
-                                        responsavel="Usuário do Sistema"
-                                    )
-                                    st.success("Status do pedido atualizado.")
-                                    st.rerun()
-                                except Exception as e:
-                                    st.error(f"❌ Erro ao atualizar status: {str(e)}")
                         st.markdown('</div>', unsafe_allow_html=True)
                         break
                 else:
