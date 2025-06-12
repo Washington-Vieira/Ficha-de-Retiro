@@ -23,8 +23,8 @@ class SheetsPedidosSync:
         """Carrega as credenciais do Google Sheets"""
         try:
             self.config = {
-                'sheets_credentials': secrets.toml,
-                'sheets_url': secrets.toml
+                'sheets_credentials': None,
+                'sheets_url': None
             }
             # 1. Tenta carregar do config.json (local)
             if os.path.exists(self.config_file):
@@ -75,6 +75,17 @@ class SheetsPedidosSync:
         try:
             # Usar as credenciais do config.json ou dos secrets
             creds = self.config.get('sheets_credentials')
+            # Corrigir: se vier como string, converter para dict
+            if isinstance(creds, str):
+                try:
+                    creds = json.loads(creds)
+                except Exception as e:
+                    if st:
+                        st.error(f"Credenciais do Google Sheets em formato inválido: {str(e)}")
+                    else:
+                        print(f"Credenciais do Google Sheets em formato inválido: {str(e)}")
+                    self.client = None
+                    return
             if creds:
                 if not creds.get('client_email'):
                     if st:
