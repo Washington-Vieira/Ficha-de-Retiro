@@ -370,6 +370,8 @@ class PedidoHistoricoView:
                         pdf_bytes = pdf.output(dest='S')
                         if isinstance(pdf_bytes, str):
                             pdf_bytes = pdf_bytes.encode('latin1')
+                        elif isinstance(pdf_bytes, bytearray):
+                            pdf_bytes = bytes(pdf_bytes)
                         
                         st.download_button(
                             label="📥 Baixar PDF do Pedido",
