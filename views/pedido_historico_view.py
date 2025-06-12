@@ -190,7 +190,7 @@ class PedidoHistoricoView:
                     filtro_status = st.selectbox(
                         "Status",
                         ["TODOS", "PENDENTE", "PROCESSO", "CONCLUÍDO"],
-                        index=0
+                        index=1
                     )
                 with col3:
                     data_inicial = st.date_input("Data Inicial", value=None)
