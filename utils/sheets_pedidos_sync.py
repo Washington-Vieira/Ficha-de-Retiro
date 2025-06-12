@@ -10,30 +10,39 @@ from oauth2client.service_account import ServiceAccountCredentials
 import re
 
 class SheetsPedidosSync:
-    def __init__(self, enable_sheets=True, config_file="config.json"):
-        self.config_file = config_file
+    def __init__(self, enable_sheets=True):
         self.SPREADSHEET_URL = None
         self.client = None
         self.enable_sheets = enable_sheets
+        self.config = {}
         self.load_config()
         if self.enable_sheets:
             self.initialize_client()
 
     def load_config(self):
-        """Carrega as credenciais do Google Sheets"""
+        """Carrega as credenciais do Google Sheets na ordem: variáveis de ambiente, secrets do Streamlit, config.json"""
         try:
             self.config = {
                 'sheets_credentials': None,
                 'sheets_url': None
             }
-            # 1. Tenta carregar do config.json (local)
-            if os.path.exists(self.config_file):
-                with open(self.config_file, 'r') as f:
-                    self.config = json.load(f)
-                    if not self.SPREADSHEET_URL:
-                        self.SPREADSHEET_URL = self.config.get('sheets_url', '')
-            # 2. Se não encontrar as credenciais, tenta dos secrets do Streamlit Cloud
-            if (not self.config.get('sheets_credentials')) and st is not None and hasattr(st, 'secrets'):
+            # 1. Tenta pelas variáveis de ambiente (local)
+            env_creds = os.environ.get('SHEETS_CREDENTIALS')
+            env_url = os.environ.get('SHEETS_URL')
+            if env_creds and env_url:
+                try:
+                    if isinstance(env_creds, str):
+                        creds = json.loads(env_creds)
+                    else:
+                        creds = env_creds
+                    self.config['sheets_credentials'] = creds
+                    self.config['sheets_url'] = env_url
+                    self.SPREADSHEET_URL = env_url
+                    return
+                except Exception as e:
+                    print(f"Erro ao carregar credenciais das variáveis de ambiente: {str(e)}")
+            # 2. Tenta pelos secrets do Streamlit Cloud
+            if st is not None and hasattr(st, 'secrets'):
                 if 'sheets_credentials' in st.secrets:
                     cred = st.secrets['sheets_credentials']
                     if isinstance(cred, str):
@@ -42,40 +51,42 @@ class SheetsPedidosSync:
                         except Exception:
                             pass
                     self.config['sheets_credentials'] = cred
-                if not self.SPREADSHEET_URL and 'sheets_url' in st.secrets:
+                if 'sheets_url' in st.secrets:
                     self.SPREADSHEET_URL = st.secrets['sheets_url']
-            # 3. Se ainda não tem URL, tenta pegar do config
-            if not self.SPREADSHEET_URL:
-                self.SPREADSHEET_URL = self.config.get('sheets_url', '')
-            # 4. Se não tem config.json, salva o default
-            if not os.path.exists(self.config_file):
-                self.save_config()
+                    self.config['sheets_url'] = self.SPREADSHEET_URL
+                if self.config['sheets_credentials'] and self.config['sheets_url']:
+                    return
+            # 3. Tenta pelo config.json (compatibilidade)
+            config_file = 'config.json'
+            if os.path.exists(config_file):
+                with open(config_file, 'r') as f:
+                    file_config = json.load(f)
+                    if 'sheets_credentials' in file_config and 'sheets_url' in file_config:
+                        self.config['sheets_credentials'] = file_config['sheets_credentials']
+                        self.config['sheets_url'] = file_config['sheets_url']
+                        self.SPREADSHEET_URL = file_config['sheets_url']
+                        return
+            # Se não encontrar, mostra erro
+            if st:
+                st.error('Credenciais do Google Sheets não encontradas nas variáveis de ambiente, secrets do Streamlit Cloud ou config.json.')
+            else:
+                print('Credenciais do Google Sheets não encontradas nas variáveis de ambiente, secrets do Streamlit Cloud ou config.json.')
         except Exception as e:
             if st:
                 st.error(f"Erro ao carregar configurações: {str(e)}")
             else:
                 print(f"Erro ao carregar configurações: {str(e)}")
             self.config = {'sheets_credentials': None}
-            if not self.SPREADSHEET_URL:
-                self.SPREADSHEET_URL = ''
+            self.SPREADSHEET_URL = ''
 
     def save_config(self):
-        """Salva configuração atual"""
-        try:
-            with open(self.config_file, 'w') as f:
-                json.dump(self.config, f, indent=4)
-        except Exception as e:
-            if st:
-                st.error(f"Erro ao salvar configurações: {str(e)}")
-            else:
-                print(f"Erro ao salvar configurações: {str(e)}")
+        """Função mantida apenas para compatibilidade, mas não salva mais sheets_credentials nem sheets_url."""
+        pass
 
     def initialize_client(self):
         """Inicializa o cliente do Google Sheets"""
         try:
-            # Usar as credenciais do config.json ou dos secrets
             creds = self.config.get('sheets_credentials')
-            # Corrigir: se vier como string, converter para dict
             if isinstance(creds, str):
                 try:
                     creds = json.loads(creds)
@@ -108,9 +119,9 @@ class SheetsPedidosSync:
                     self.client = None
             else:
                 if st:
-                    st.error('Credenciais do Google Sheets não encontradas no config.json nem nos secrets do Streamlit Cloud.')
+                    st.error('Credenciais do Google Sheets não encontradas.')
                 else:
-                    print('Credenciais do Google Sheets não encontradas no config.json nem nos secrets do Streamlit Cloud.')
+                    print('Credenciais do Google Sheets não encontradas.')
                 self.client = None
         except Exception as e:
             if st:
