@@ -300,7 +300,11 @@ class PedidoFormView:
                         else:
                             pdf.ln(2)
                     
-                    pdf_bytes = pdf.output(dest='S').encode('latin1')
+                    # Corrigindo a geração do PDF para funcionar no Linux
+                    pdf_bytes = pdf.output(dest='S')
+                    if isinstance(pdf_bytes, str):
+                        pdf_bytes = pdf_bytes.encode('latin1')
+                    
                     st.download_button(
                         label="📥 Baixar PDF do Pedido",
                         data=pdf_bytes,
