@@ -23,8 +23,8 @@ class SheetsPedidosSync:
         """Carrega as credenciais do Google Sheets"""
         try:
             self.config = {
-                'sheets_credentials': 'secrets.toml',
-                'sheets_url': 'secrets.toml'
+                'sheets_credentials': secrets.toml,
+                'sheets_url': secrets.toml
             }
             # 1. Tenta carregar do config.json (local)
             if os.path.exists(self.config_file):
