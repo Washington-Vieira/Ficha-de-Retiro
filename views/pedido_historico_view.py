@@ -556,7 +556,13 @@ Status: {pedido['status']}
             overflow: hidden;
             background-color: white;
         ">
-            <div>{pedido.get('Numero_Pedido', 'N/A')} - {pedido.get('Data', 'N/A')}</div>
+            <div>
+                <strong>
+                    <span style='cursor:pointer; color:#2c3e50;' onclick=\"alert('Número do Pedido: {pedido.get('Numero_Pedido', 'N/A')}')\">
+                        {pedido.get('Numero_Pedido', 'N/A')}
+                    </span>
+                </strong> - {pedido.get('Data', 'N/A')}
+            </div>
             <div><strong>Maq:</strong> {pedido.get('Maquina', 'N/A')}</div>
             <div><strong>Coord:</strong> {pedido.get('Coordenada', 'N/A')} - <strong>Posto:</strong> {pedido.get('Posto', 'N/A')}</div>
             <div><strong>Pag:</strong> {pedido.get('Pagoda', 'N/A')} - <strong>Semi:</strong> {pedido.get('Semiacabado', 'N/A')}</div>
