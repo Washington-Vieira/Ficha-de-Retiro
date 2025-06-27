@@ -260,18 +260,33 @@ class PedidoHistoricoView:
         try:
             # Expandable filter section
             with st.expander("🔍 Filtros de Pesquisa"):
-                col1, col2, col3, col4 = st.columns(4)
+                col1, col2, col3, col4, col5 = st.columns(5)
                 with col1:
                     filtro_numero = st.text_input("Número do Pedido", value="")
                 with col2:
+                    # Novo filtro de máquina
+                    # Buscar todas as máquinas únicas do DataFrame
+                    maquinas_disponiveis = ["TODAS"]
+                    try:
+                        df_maquinas = self.controller.buscar_pedidos()
+                        maquinas_unicas = df_maquinas["Maquina"].dropna().unique().tolist()
+                        maquinas_disponiveis += sorted([str(m) for m in maquinas_unicas if str(m).strip()])
+                    except:
+                        pass
+                    filtro_maquina = st.selectbox(
+                        "Máquina",
+                        maquinas_disponiveis,
+                        index=0
+                    )
+                with col3:
                     filtro_status = st.selectbox(
                         "Status",
                         ["TODOS", "PENDENTE", "PROCESSO", "CONCLUÍDO"],
                         index=1
                     )
-                with col3:
-                    data_inicial = st.date_input("Data Inicial", value=None)
                 with col4:
+                    data_inicial = st.date_input("Data Inicial", value=None)
+                with col5:
                     data_final = st.date_input("Data Final", value=None)
 
             # Carregar e filtrar dados
@@ -279,6 +294,9 @@ class PedidoHistoricoView:
                 numero_pedido=filtro_numero if filtro_numero else None,
                 status=filtro_status if filtro_status != "TODOS" else None
             )
+            # Aplicar filtro de máquina se não for 'TODAS'
+            if 'filtro_maquina' in locals() and filtro_maquina and filtro_maquina != 'TODAS':
+                df_pedidos = df_pedidos[df_pedidos['Maquina'] == filtro_maquina].copy()
             
             if df_pedidos.empty:
                 st.info("Nenhum pedido encontrado.")
