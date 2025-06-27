@@ -45,3 +45,46 @@ pedido_local.spec.exe
 pedido_local_desktop.spec.exe.manifest
 pedido_local.spec.exe.manifest
 pedido_local_desktop.spec.exe.manifest.exe
+pedido_local_universal.zip
+pedido_local_desktop_universal.spec
+requirements-mobile-dev.txt
+pedido_local_windows
+pedido_local_universal
+
+# Arquivos de ambiente
+
+.env
+.env.*
+
+# Arquivos de configuração e dados sensíveis
+config.json
+app/src/main/assets/config.json
+pedido_local_windows/config.json
+pedido_local_universal/config.json
+
+# Arquivos de dados e planilhas
+pedidos/pedidos.xlsx
+pedidos/Versão de Linha YMS_Motor XBB.xlsx
+
+# Arquivos de cache e temporários
+pedidos/cache/
+
+# Executáveis e binários
+dist/
+build/
+pedido_local_windows/pedido_local_desktop.exe
+pedido_local_universal/pedido_local_desktop.exe
+pedido_local_desktop.exe
+pedido_local.exe
+pedido_local_desktop_universal.zip
+
+# Arquivos de leitura pendente
+leituras_pendentes.json
+pedido_local_universal/leituras_pendentes.json
+
+# Pastas de cache do Python
+utils/__pycache__/
+app/src/main/assets/utils/__pycache__/
+
+# Pastas de libs (binários ou dependências)
+app/libs/

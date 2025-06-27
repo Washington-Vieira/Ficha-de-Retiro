@@ -8,6 +8,8 @@ except ImportError:
 import gspread
 from oauth2client.service_account import ServiceAccountCredentials
 import re
+from dotenv import load_dotenv
+from datetime import datetime
 
 class SheetsPedidosSync:
     def __init__(self, enable_sheets=True):
@@ -15,48 +17,35 @@ class SheetsPedidosSync:
         self.client = None
         self.enable_sheets = enable_sheets
         self.config = {}
+        # Carrega as variáveis do .env
+        load_dotenv()
         self.load_config()
         if self.enable_sheets:
             self.initialize_client()
 
     def load_config(self):
-        """Carrega as credenciais do Google Sheets na ordem: variáveis de ambiente, secrets do Streamlit, config.json"""
+        """Carrega as credenciais do Google Sheets na ordem: variáveis de ambiente (.env), config.json"""
         try:
             self.config = {
                 'sheets_credentials': None,
                 'sheets_url': None
             }
-            # 1. Tenta pelas variáveis de ambiente (local)
-            env_creds = os.environ.get('SHEETS_CREDENTIALS')
-            env_url = os.environ.get('SHEETS_URL')
+            # 1. Tenta pelas variáveis de ambiente (.env)
+            env_creds = os.getenv('SHEETS_CREDENTIALS')
+            env_url = os.getenv('SHEETS_URL')
             if env_creds and env_url:
                 try:
-                    if isinstance(env_creds, str):
-                        creds = json.loads(env_creds)
-                    else:
-                        creds = env_creds
+                    # Remove possíveis aspas extras e espaços
+                    env_creds = env_creds.strip().strip('"\'')
+                    creds = json.loads(env_creds)
                     self.config['sheets_credentials'] = creds
-                    self.config['sheets_url'] = env_url
-                    self.SPREADSHEET_URL = env_url
+                    self.config['sheets_url'] = env_url.strip()
+                    self.SPREADSHEET_URL = env_url.strip()
                     return
                 except Exception as e:
                     print(f"Erro ao carregar credenciais das variáveis de ambiente: {str(e)}")
-            # 2. Tenta pelos secrets do Streamlit Cloud
-            if st is not None and hasattr(st, 'secrets'):
-                if 'sheets_credentials' in st.secrets:
-                    cred = st.secrets['sheets_credentials']
-                    if isinstance(cred, str):
-                        try:
-                            cred = json.loads(cred)
-                        except Exception:
-                            pass
-                    self.config['sheets_credentials'] = cred
-                if 'sheets_url' in st.secrets:
-                    self.SPREADSHEET_URL = st.secrets['sheets_url']
-                    self.config['sheets_url'] = self.SPREADSHEET_URL
-                if self.config['sheets_credentials'] and self.config['sheets_url']:
-                    return
-            # 3. Tenta pelo config.json (compatibilidade)
+            
+            # 2. Tenta pelo config.json (compatibilidade)
             config_file = 'config.json'
             if os.path.exists(config_file):
                 with open(config_file, 'r') as f:
@@ -66,11 +55,12 @@ class SheetsPedidosSync:
                         self.config['sheets_url'] = file_config['sheets_url']
                         self.SPREADSHEET_URL = file_config['sheets_url']
                         return
+            
             # Se não encontrar, mostra erro
             if st:
-                st.error('Credenciais do Google Sheets não encontradas nas variáveis de ambiente, secrets do Streamlit Cloud ou config.json.')
+                st.error('Credenciais do Google Sheets não encontradas nas variáveis de ambiente (.env) ou config.json.')
             else:
-                print('Credenciais do Google Sheets não encontradas nas variáveis de ambiente, secrets do Streamlit Cloud ou config.json.')
+                print('Credenciais do Google Sheets não encontradas nas variáveis de ambiente (.env) ou config.json.')
         except Exception as e:
             if st:
                 st.error(f"Erro ao carregar configurações: {str(e)}")
@@ -594,3 +584,162 @@ class SheetsPedidosSync:
             else:
                 print(f"Não foi possível buscar o próximo número de pedido: {str(e)}")
             return 1
+
+    def registrar_leitura_barcode(self, codigo: str, operador: str = "Scanner") -> tuple[bool, str]:
+        """Registra uma leitura de código de barras e gera um pedido automaticamente.
+        
+        Args:
+            codigo: O código de barras escaneado
+            operador: Nome do operador/dispositivo que fez a leitura
+            
+        Returns:
+            tuple[bool, str]: (sucesso, mensagem)
+        """
+        try:
+            if not self.client:
+                raise ValueError("Cliente do Google Sheets não configurado. Verifique as credenciais.")
+            if not self.SPREADSHEET_URL:
+                raise ValueError("URL da planilha não configurada.")
+
+            # Abrir a planilha
+            sheet = self.client.open_by_url(self.SPREADSHEET_URL)
+            
+            # 1. Registrar a leitura na aba "Leituras"
+            ws_leituras = self._get_or_create_worksheet(sheet, "Leituras")
+            
+            # Verificar/criar cabeçalho se necessário
+            headers_leituras = ["Data_Leitura", "Codigo", "Operador", "Status", "Numero_Pedido"]
+            if not ws_leituras.row_values(1):
+                ws_leituras.append_row(headers_leituras)
+                ws_leituras.format('A1:E1', {
+                    "backgroundColor": {"red": 0.8, "green": 0.8, "blue": 0.8},
+                    "horizontalAlignment": "CENTER",
+                    "textFormat": {"bold": True}
+                })
+                ws_leituras.freeze(rows=1)
+            
+            # 2. Buscar informações do item na aba "paco"
+            ws_paco = sheet.worksheet("paco")
+            paco_data = ws_paco.get_all_records()
+            
+            # Normalizar o código para busca
+            codigo_norm = str(codigo).strip().upper()
+            item_encontrado = None
+            
+            for row in paco_data:
+                serial = str(row.get('Serial', '')).strip().upper()
+                if serial and serial == codigo_norm:
+                    item_encontrado = {
+                        'serial': str(row.get('Serial', '')).strip(),
+                        'maquina': str(row.get('Maquina', '')).strip(),
+                        'posto': str(row.get('Posto', '')).strip(),
+                        'coordenada': str(row.get('Coordenada', '')).strip(),
+                        'modelo': str(row.get('Modelo', '')).strip(),
+                        'ot': str(row.get('OT', '')).strip(),
+                        'semiacabado': str(row.get('Semiacabado', '')).strip(),
+                        'pagoda': str(row.get('Pagoda', '')).strip()
+                    }
+                    break
+            
+            data_atual = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+            
+            if not item_encontrado:
+                # Registrar leitura com status de erro
+                ws_leituras.append_row([
+                    data_atual,
+                    codigo,
+                    operador,
+                    "ERRO - Item não encontrado",
+                    ""
+                ])
+                return False, f"Item com código {codigo} não encontrado na base de dados."
+            
+            # 3. Gerar número do pedido
+            proximo_num = self.get_proximo_numero_pedido(prefixo="REQ-")
+            numero_pedido = f"REQ-{proximo_num:03d}"
+            
+            # 4. Criar o pedido
+            pedido_info = {
+                **item_encontrado,
+                "solicitante": f"Scanner - {operador}",
+                "observacoes": "Pedido gerado automaticamente via leitura de código de barras",
+                "urgente": "Não",
+                "data": data_atual,
+                "ultima_atualizacao": data_atual
+            }
+            
+            # Preparar DataFrame do pedido
+            colunas_pedidos = [
+                "Numero_Pedido", "Data", "Serial", "Maquina", "Posto", "Coordenada", 
+                "Modelo", "OT", "Semiacabado", "Pagoda", "Status", "Urgente", 
+                "Ultima_Atualizacao", "Responsavel_Atualizacao", "Responsavel_Separacao",
+                "Data_Separacao", "Responsavel_Coleta", "Data_Coleta", "Solicitante", "Observacoes"
+            ]
+            
+            novo_pedido = {
+                "Numero_Pedido": numero_pedido,
+                "Data": data_atual,
+                "Serial": pedido_info['serial'],
+                "Maquina": pedido_info['maquina'],
+                "Posto": pedido_info['posto'],
+                "Coordenada": pedido_info['coordenada'],
+                "Modelo": pedido_info['modelo'],
+                "OT": pedido_info['ot'],
+                "Semiacabado": pedido_info['semiacabado'],
+                "Pagoda": pedido_info['pagoda'],
+                "Status": "PENDENTE",
+                "Urgente": pedido_info['urgente'],
+                "Ultima_Atualizacao": data_atual,
+                "Responsavel_Atualizacao": pedido_info['solicitante'],
+                "Responsavel_Separacao": "",
+                "Data_Separacao": "",
+                "Responsavel_Coleta": "",
+                "Data_Coleta": "",
+                "Solicitante": pedido_info['solicitante'],
+                "Observacoes": pedido_info['observacoes']
+            }
+            
+            df_pedidos = pd.DataFrame([[novo_pedido.get(col, "") for col in colunas_pedidos]], columns=colunas_pedidos)
+            df_itens = pd.DataFrame([{
+                "Numero_Pedido": numero_pedido,
+                "Serial": pedido_info['serial'],
+                "Quantidade": 1
+            }])
+            
+            # Salvar o pedido
+            success, message = self.salvar_pedido_completo(df_pedidos, df_itens)
+            
+            if success:
+                # Registrar leitura com sucesso
+                ws_leituras.append_row([
+                    data_atual,
+                    codigo,
+                    operador,
+                    "SUCESSO - Pedido gerado",
+                    numero_pedido
+                ])
+                return True, f"Pedido {numero_pedido} criado com sucesso para o item {codigo}!"
+            else:
+                # Registrar leitura com erro
+                ws_leituras.append_row([
+                    data_atual,
+                    codigo,
+                    operador,
+                    f"ERRO - {message}",
+                    ""
+                ])
+                return False, f"Erro ao gerar pedido: {message}"
+            
+        except Exception as e:
+            # Em caso de erro, tentar registrar a leitura com erro
+            try:
+                ws_leituras.append_row([
+                    datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
+                    codigo,
+                    operador,
+                    f"ERRO - {str(e)}",
+                    ""
+                ])
+            except:
+                pass
+            return False, f"Erro ao processar leitura: {str(e)}"

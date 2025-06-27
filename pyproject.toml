@@ -1,0 +1,30 @@
+[tool.briefcase]
+project_name = "Pedido Mobile"
+bundle = "com.yazaki"
+version = "0.1.0"
+url = "https://yazaki.com"
+license = "Proprietary"
+author = "Yazaki"
+author_email = "washington.vieira@yazaki.com"
+
+[tool.briefcase.app.pedidomobile]
+formal_name = "Pedido Mobile"
+description = "Aplicativo de leitura de códigos e pedidos"
+sources = ['pedido_mobile_win.py', 'utils']
+requires = [
+    'kivy==2.2.1',
+    'pandas==1.5.3',
+    'google-api-python-client==2.108.0',
+    'google-auth-httplib2==0.1.1',
+    'google-auth-oauthlib==1.1.0',
+    'pillow==10.0.0',
+    'plyer==2.1.0'
+]
+
+[tool.briefcase.app.pedidomobile.android]
+requires = []
+arch = 'armeabi-v7a'
+sdk_min_version = 28
+sdk_target_version = 28
+
+icon = "resources/icon" 
