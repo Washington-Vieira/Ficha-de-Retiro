@@ -371,7 +371,7 @@ class PedidoHistoricoView:
                         st.rerun()
 
             # Nova seção para Packlist
-            st.markdown("### 📦 Gerar Packlist")
+            st.markdown("### 📃 Gerar lista")
             
             # Inicializar o estado de visualização se não existir
             if 'mostrar_preview' not in st.session_state:
