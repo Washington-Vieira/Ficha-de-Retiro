@@ -270,7 +270,7 @@ class PedidoHistoricoView:
                     try:
                         df_maquinas = self.controller.buscar_pedidos()
                         maquinas_unicas = df_maquinas["Maquina"].dropna().unique().tolist()
-                        maquinas_disponiveis += sorted([str(m) for m in maquinas_unicas if str(m).strip()]) */add filtro maquina
+                        maquinas_disponiveis += sorted([str(m) for m in maquinas_unicas if str(m).strip()])
                     except:
                         pass
                     filtro_maquina = st.selectbox(
