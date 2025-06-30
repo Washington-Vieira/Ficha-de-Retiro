@@ -9,7 +9,7 @@ from views.configuracoes_view import ConfiguracoesView
 from views.pedido_dashboard_gerencial import mostrar_dashboard_gerencial
 from pathlib import Path
 
-# Caminho do arquivo local correto (usando Path para garantir o caminho correto)
+# Caminho do arquivo local correto (usando Path para garantir o caminho correto..)
 DIRETORIO_BASE = os.path.dirname(os.path.abspath(__file__))
 PLANILHA_LOCAL = os.path.join(DIRETORIO_BASE, 'pedidos', 'Versão de Linha YMS_Motor XBB.xlsx')
 
