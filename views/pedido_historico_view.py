@@ -646,7 +646,6 @@ Status: {pedido['status']}
 
     def _gerar_pdf_visual_pedidos(self, df_pedidos):
         """Gera um PDF visual com todos os pedidos recebidos (PENDENTE/PROCESSO)"""
-        buffer = BytesIO()
         pdf = FPDF()
         pdf.set_auto_page_break(auto=True, margin=15)
         pdf.add_page()
@@ -663,5 +662,5 @@ Status: {pedido['status']}
             pdf.ln(4)
             pdf.line(10, pdf.get_y(), 200, pdf.get_y())
             pdf.ln(2)
-        pdf.output(buffer)
-        return buffer.getvalue()
+        pdf_bytes = pdf.output(dest='S').encode('latin1')
+        return pdf_bytes
