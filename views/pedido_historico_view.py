@@ -438,7 +438,7 @@ class PedidoHistoricoView:
                         b64 = base64.b64encode(pdf_bytes).decode()
                         href = f'<a href="data:application/pdf;base64,{b64}" download="etiquetas_{periodo_inicio.strftime('%H%M')}_{periodo_fim.strftime('%H%M')}.pdf" style="display:block;text-align:center;padding:0.5rem 1rem;background-color:#1a2b3a;color:white;border-radius:0.5rem;text-decoration:none;font-weight:500;margin-top:0.5rem;">Gerar Etiquetas</a>'
                         st.markdown(href, unsafe_allow_html=True)
-                        # Atualizar status silenciosamente após download
+                        # Atualizar status silenciosamente após download sssss
                         for _, row in df_periodo.iterrows():
                             try:
                                 self.controller.atualizar_status_pedido(
