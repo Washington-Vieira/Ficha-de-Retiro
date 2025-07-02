@@ -396,7 +396,7 @@ class PedidoHistoricoView:
                 st.session_state.mostrar_preview = False
             
             # Filtro por período
-            col_periodo1, col_periodo2, col_preview, col_download = st.columns([2, 2, 1, 1])
+            col_periodo1, col_periodo2, col_preview, col_download, col_export = st.columns([2, 2, 1, 1, 1])
             with col_periodo1:
                 periodo_inicio = st.time_input("Hora Inicial", datetime.now().replace(hour=8, minute=0))
             with col_periodo2:
@@ -434,7 +434,7 @@ class PedidoHistoricoView:
                     pdf_bytes = self._gerar_packlist_pdf(pedidos_lista)
                     
                     # Botão de download igual ao pré-visualizar
-                    if st.button("📄 Processar Lista", type="primary", use_container_width=True):
+                    if st.button("🔖 Processar Lista", type="primary", use_container_width=True):
                         b64 = base64.b64encode(pdf_bytes).decode()
                         href = f'<a href="data:application/pdf;base64,{b64}" download="etiquetas_{periodo_inicio.strftime('%H%M')}_{periodo_fim.strftime('%H%M')}.pdf" style="display:block;text-align:center;padding:0.5rem 1rem;background-color:#1a2b3a;color:white;border-radius:0.5rem;text-decoration:none;font-weight:500;margin-top:0.5rem;">Gerar Etiquetas</a>'
                         st.markdown(href, unsafe_allow_html=True)
@@ -448,6 +448,41 @@ class PedidoHistoricoView:
                                 )
                             except:
                                 pass
+
+            with col_export:
+                if not df_periodo.empty:
+                    if st.button("🧾 Exportar pedidos", type="secondary", use_container_width=True):
+                        # Buscar todos os pedidos PENDENTE
+                        df_pendentes = self.controller.buscar_pedidos(status="PENDENTE")
+                        if df_pendentes.empty:
+                            st.warning("Nenhum pedido PENDENTE encontrado.")
+                        else:
+                            # Converter coluna de data para datetime
+                            df_pendentes['Data'] = pd.to_datetime(df_pendentes['Data'], errors='coerce')
+                            # Filtrar pelo horário selecionado
+                            df_pendentes['Hora'] = df_pendentes['Data'].dt.time
+                            df_pendentes_periodo = df_pendentes[
+                                (df_pendentes['Hora'] >= periodo_inicio) &
+                                (df_pendentes['Hora'] <= periodo_fim)
+                            ]
+                            if df_pendentes_periodo.empty:
+                                st.warning("Nenhum pedido PENDENTE encontrado no horário selecionado.")
+                            else:
+                                # Gerar PDF visual
+                                pdf_bytes = self._gerar_pdf_visual_pedidos(df_pendentes_periodo)
+                                b64 = base64.b64encode(pdf_bytes).decode()
+                                href = f'<a href="data:application/pdf;base64,{b64}" download="pedidos_pendentes_{periodo_inicio.strftime('%H%M')}_{periodo_fim.strftime('%H%M')}.pdf" style="display:block;text-align:center;padding:0.5rem 1rem;background-color:#1a2b3a;color:white;border-radius:0.5rem;text-decoration:none;font-weight:500;margin-top:0.5rem;">Gerar Lista</a>'
+                                st.markdown(href, unsafe_allow_html=True)
+                                # Atualizar status para CONCLUÍDO após exportar
+                                for _, row in df_pendentes_periodo.iterrows():
+                                    try:
+                                        self.controller.atualizar_status_pedido(
+                                            numero_pedido=row['Numero_Pedido'],
+                                            novo_status='CONCLUÍDO',
+                                            responsavel='Sistema (PDF Exportado)'
+                                        )
+                                    except Exception as e:
+                                        st.warning(f"Erro ao atualizar status do pedido {row['Numero_Pedido']}: {str(e)}")
 
             # Mostrar total de pedidos encontrados
             if not df_periodo.empty:
@@ -608,3 +643,25 @@ Status: {pedido['status']}
                 use_container_width=True,
                 hide_index=True
             )
+
+    def _gerar_pdf_visual_pedidos(self, df_pedidos):
+        """Gera um PDF visual com todos os pedidos recebidos (PENDENTE/PROCESSO)"""
+        buffer = BytesIO()
+        pdf = FPDF()
+        pdf.set_auto_page_break(auto=True, margin=15)
+        pdf.add_page()
+        pdf.set_font("Arial", size=12)
+        pdf.cell(0, 10, "Pedidos Recebidos (PENDENTE/PROCESSO)", ln=True, align="C")
+        pdf.ln(5)
+        for idx, row in df_pedidos.iterrows():
+            pdf.set_font("Arial", size=11)
+            pdf.cell(0, 8, f"Pedido: {row['Numero_Pedido']}  |  Data: {row['Data']}", ln=True)
+            pdf.set_font("Arial", size=10)
+            pdf.cell(0, 7, f"Serial: {row['Serial']}  |  Máquina: {row['Maquina']}  |  Posto: {row['Posto']}  |  Coordenada: {row['Coordenada']}", ln=True)
+            pdf.cell(0, 7, f"Modelo: {row['Modelo']}  |  OT: {row['OT']}  |  Semiacabado: {row['Semiacabado']}  |  Pagoda: {row['Pagoda']}", ln=True)
+            pdf.cell(0, 7, f"Status: {row['Status']}", ln=True)
+            pdf.ln(4)
+            pdf.line(10, pdf.get_y(), 200, pdf.get_y())
+            pdf.ln(2)
+        pdf.output(buffer)
+        return buffer.getvalue()
