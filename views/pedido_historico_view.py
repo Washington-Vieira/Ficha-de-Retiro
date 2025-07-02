@@ -468,8 +468,10 @@ class PedidoHistoricoView:
                             if df_pendentes_periodo.empty:
                                 st.warning("Nenhum pedido PENDENTE encontrado no horário selecionado.")
                             else:
-                                # Gerar PDF visual
-                                pdf_bytes = self._gerar_pdf_visual_pedidos(df_pendentes_periodo)
+                                # Gerar PDF visual mostrando status como PROCESSO
+                                df_pdf = df_pendentes_periodo.copy()
+                                df_pdf['Status'] = 'PROCESSO'
+                                pdf_bytes = self._gerar_pdf_visual_pedidos(df_pdf)
                                 b64 = base64.b64encode(pdf_bytes).decode()
                                 href = f'<a href="data:application/pdf;base64,{b64}" download="pedidos_pendentes_{periodo_inicio.strftime('%H%M')}_{periodo_fim.strftime('%H%M')}.pdf" style="display:block;text-align:center;padding:0.5rem 1rem;background-color:#1a2b3a;color:white;border-radius:0.5rem;text-decoration:none;font-weight:500;margin-top:0.5rem;">Gerar Lista</a>'
                                 st.markdown(href, unsafe_allow_html=True)
@@ -662,5 +664,9 @@ Status: {pedido['status']}
             pdf.ln(4)
             pdf.line(10, pdf.get_y(), 200, pdf.get_y())
             pdf.ln(2)
-        pdf_bytes = pdf.output(dest='S').encode('latin1')
+        output = pdf.output(dest='S')
+        if isinstance(output, str):
+            pdf_bytes = output.encode('latin1')
+        else:
+            pdf_bytes = bytes(output)
         return pdf_bytes
