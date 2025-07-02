@@ -212,31 +212,26 @@ class PedidoHistoricoView:
             return False
 
     def _gerar_packlist_pdf(self, pedidos):
-        """Gera o PDF com as etiquetas dos pedidos"""
         buffer = BytesIO()
-        
-        # Configurações da página
-        largura_etiqueta = 60 * mm  # 60mm
-        altura_etiqueta = 30 * mm   # 30mm
-        margem = 0 * mm             # sem margem
-        
-        # Criar o PDF
+        largura_etiqueta = 60 * mm
+        altura_etiqueta = 30 * mm
+        margem = 0 * mm
         c = canvas.Canvas(buffer, pagesize=landscape((largura_etiqueta + 2*margem, altura_etiqueta + 2*margem)))
-        
         for pedido in pedidos:
             c.setFont("Helvetica", 8)
-            y_pos = [25, 21, 18, 15, 12, 9, 6]  # em mm
-            # Ordem: Número, Semiacabado, Pagoda, Posto, Coordenada, Máquina, Data, Serial, Modelo, Status
-            c.drawString(margem + 2*mm, y_pos[0]*mm, f"{pedido.get('Numero_Pedido','')} | {pedido.get('Semiacabado','')}")
-            c.drawString(margem + 2*mm, y_pos[1]*mm, f"Pagoda: {pedido.get('Pagoda','')}")
-            c.drawString(margem + 2*mm, y_pos[2]*mm, f"Posto: {pedido.get('Posto','')} | Coord: {pedido.get('Coordenada','')}")
-            c.drawString(margem + 2*mm, y_pos[3]*mm, f"Máquina: {pedido.get('Maquina','')}")
-            c.drawString(margem + 2*mm, y_pos[4]*mm, f"Data: {pedido.get('Data','')}")
-            c.drawString(margem + 2*mm, y_pos[5]*mm, f"Serial: {pedido.get('Serial','')}")
-            c.drawString(margem + 2*mm, y_pos[6]*mm, f"Modelo: {pedido.get('Modelo','')}")
-            c.drawString(margem + 2*mm, y_pos[6]*mm-3, f"Status: {pedido.get('Status','')}")
+            y = altura_etiqueta + margem - 6*mm
+            # Linha 1: Número do Pedido - Data/Hora
+            c.drawString(margem + 2*mm, y, f"{pedido.get('Numero_Pedido','')} - {pedido.get('Data','')}")
+            y -= 6*mm
+            # Linha 2: Maq
+            c.drawString(margem + 2*mm, y, f"Maq: {pedido.get('Maquina','')}")
+            y -= 6*mm
+            # Linha 3: Coord e Posto
+            c.drawString(margem + 2*mm, y, f"Coord: {pedido.get('Coordenada','')} - Posto: {pedido.get('Posto','')}")
+            y -= 6*mm
+            # Linha 4: Pag e Semi
+            c.drawString(margem + 2*mm, y, f"Pag: {pedido.get('Pagoda','')} - Semi: {pedido.get('Semiacabado','')}")
             c.showPage()
-        
         c.save()
         return buffer.getvalue()
 
@@ -581,7 +576,6 @@ Status: {pedido['status']}
         pdf.ln(0)
 
     def _gerar_preview_etiqueta(self, pedido):
-        """Gera uma prévia da etiqueta em HTML para visualização"""
         preview_html = f"""
         <div style="
             width: 226px;
@@ -595,16 +589,10 @@ Status: {pedido['status']}
             overflow: hidden;
             background-color: white;
         ">
-            <div><strong>Número:</strong> {pedido.get('Numero_Pedido', 'N/A')}</div>
-            <div><strong>Semiacabado:</strong> {pedido.get('Semiacabado', 'N/A')}</div>
-            <div><strong>Pagoda:</strong> {pedido.get('Pagoda', 'N/A')}</div>
-            <div><strong>Posto:</strong> {pedido.get('Posto', 'N/A')}</div>
-            <div><strong>Coordenada:</strong> {pedido.get('Coordenada', 'N/A')}</div>
-            <div><strong>Máquina:</strong> {pedido.get('Maquina', 'N/A')}</div>
-            <div><strong>Data:</strong> {pedido.get('Data', 'N/A')}</div>
-            <div><strong>Serial:</strong> {pedido.get('Serial', 'N/A')}</div>
-            <div><strong>Modelo:</strong> {pedido.get('Modelo', 'N/A')}</div>
-            <div><strong>Status:</strong> {pedido.get('Status', 'N/A')}</div>
+            <div><strong>{pedido.get('Numero_Pedido', 'N/A')} - {pedido.get('Data', 'N/A')}</strong></div>
+            <div><strong>Maq:</strong> {pedido.get('Maquina', 'N/A')}</div>
+            <div><strong>Coord:</strong> {pedido.get('Coordenada', 'N/A')} - <strong>Posto:</strong> {pedido.get('Posto', 'N/A')}</div>
+            <div><strong>Pag:</strong> {pedido.get('Pagoda', 'N/A')} - <strong>Semi:</strong> {pedido.get('Semiacabado', 'N/A')}</div>
         </div>
         """
         return preview_html
