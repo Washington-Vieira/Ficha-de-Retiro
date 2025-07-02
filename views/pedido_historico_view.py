@@ -224,29 +224,17 @@ class PedidoHistoricoView:
         c = canvas.Canvas(buffer, pagesize=landscape((largura_etiqueta + 2*margem, altura_etiqueta + 2*margem)))
         
         for pedido in pedidos:
-            # Configurar fonte e tamanho
             c.setFont("Helvetica", 8)
-            
-            # Posições Y para cada linha (de baixo para cima)
-            y_pos = [25, 19, 13, 7]  # em mm
-            
-            # Linha 1: Número do Pedido + Data
-            texto = f"{pedido['Numero_Pedido']} - {pedido['Data']}"
-            c.drawString(margem + 2*mm, y_pos[0]*mm, texto)
-            
-            # Linha 2: Máquina
-            texto = f"Máquina: {pedido['Maquina']}"
-            c.drawString(margem + 2*mm, y_pos[1]*mm, texto)
-            
-            # Linha 3: Posto + Coordenada
-            texto = f"Posto: {pedido['Posto']} - Coord: {pedido['Coordenada']}"
-            c.drawString(margem + 2*mm, y_pos[2]*mm, texto)
-            
-            # Linha 4: Pagoda + Semiacabado
-            texto = f"Pagoda: {pedido['Pagoda']} - {pedido['Semiacabado']}"
-            c.drawString(margem + 2*mm, y_pos[3]*mm, texto)
-            
-            # Adicionar nova página para próxima etiqueta
+            y_pos = [25, 21, 18, 15, 12, 9, 6]  # em mm
+            # Ordem: Número, Semiacabado, Pagoda, Posto, Coordenada, Máquina, Data, Serial, Modelo, Status
+            c.drawString(margem + 2*mm, y_pos[0]*mm, f"{pedido.get('Numero_Pedido','')} | {pedido.get('Semiacabado','')}")
+            c.drawString(margem + 2*mm, y_pos[1]*mm, f"Pagoda: {pedido.get('Pagoda','')}")
+            c.drawString(margem + 2*mm, y_pos[2]*mm, f"Posto: {pedido.get('Posto','')} | Coord: {pedido.get('Coordenada','')}")
+            c.drawString(margem + 2*mm, y_pos[3]*mm, f"Máquina: {pedido.get('Maquina','')}")
+            c.drawString(margem + 2*mm, y_pos[4]*mm, f"Data: {pedido.get('Data','')}")
+            c.drawString(margem + 2*mm, y_pos[5]*mm, f"Serial: {pedido.get('Serial','')}")
+            c.drawString(margem + 2*mm, y_pos[6]*mm, f"Modelo: {pedido.get('Modelo','')}")
+            c.drawString(margem + 2*mm, y_pos[6]*mm-3, f"Status: {pedido.get('Status','')}")
             c.showPage()
         
         c.save()
@@ -320,17 +308,13 @@ class PedidoHistoricoView:
                 st.write(f"Total de pedidos: {total_pedidos}")
                 
                 # Formatar DataFrame para exibição
-                df_display = df_pedidos[ [
-                    "Numero_Pedido", "Data", "Serial", "Maquina", 
-                    "Posto", "Coordenada", "Modelo", "OT",
-                    "Semiacabado", "Pagoda", "Status"
+                df_display = df_pedidos[[
+                    "Numero_Pedido", "Semiacabado", "Pagoda", "Posto", "Coordenada", "Maquina", "Data", "Serial", "Modelo", "Status"
                 ]].copy()
 
                 # Renomear colunas
                 df_display.columns = [
-                    "Número", "Data", "Serial", "Máquina",
-                    "Posto", "Coordenada", "Modelo", "OT",
-                    "Semiacabado", "Pagoda", "Status"
+                    "Número", "Semiacabado", "Pagoda", "Posto", "Coordenada", "Máquina", "Data", "Serial", "Modelo", "Status"
                 ]
                 
                 # Formatar a coluna de data
@@ -360,7 +344,7 @@ class PedidoHistoricoView:
                         )
                     },
                     disabled=["Número", "Data", "Serial", "Máquina", "Posto", "Coordenada", 
-                            "Modelo", "OT", "Semiacabado", "Pagoda"]
+                            "Modelo"]
                 )
 
                 # Detectar alterações de status
@@ -600,8 +584,8 @@ Status: {pedido['status']}
         """Gera uma prévia da etiqueta em HTML para visualização"""
         preview_html = f"""
         <div style="
-            width: 226px;  /* 60mm em pixels aproximadamente */
-            height: 113px; /* 30mm em pixels aproximadamente */
+            width: 226px;
+            height: 113px;
             border: 1px solid #ccc;
             padding: 5px;
             margin: 10px 0;
@@ -611,16 +595,16 @@ Status: {pedido['status']}
             overflow: hidden;
             background-color: white;
         ">
-            <div>
-                <strong>
-                    <span style='cursor:pointer; color:#2c3e50;' onclick=\"alert('Número do Pedido: {pedido.get('Numero_Pedido', 'N/A')}')\">
-                        {pedido.get('Numero_Pedido', 'N/A')}
-                    </span>
-                </strong> - {pedido.get('Data', 'N/A')}
-            </div>
-            <div><strong>Maq:</strong> {pedido.get('Maquina', 'N/A')}</div>
-            <div><strong>Coord:</strong> {pedido.get('Coordenada', 'N/A')} - <strong>Posto:</strong> {pedido.get('Posto', 'N/A')}</div>
-            <div><strong>Pag:</strong> {pedido.get('Pagoda', 'N/A')} - <strong>Semi:</strong> {pedido.get('Semiacabado', 'N/A')}</div>
+            <div><strong>Número:</strong> {pedido.get('Numero_Pedido', 'N/A')}</div>
+            <div><strong>Semiacabado:</strong> {pedido.get('Semiacabado', 'N/A')}</div>
+            <div><strong>Pagoda:</strong> {pedido.get('Pagoda', 'N/A')}</div>
+            <div><strong>Posto:</strong> {pedido.get('Posto', 'N/A')}</div>
+            <div><strong>Coordenada:</strong> {pedido.get('Coordenada', 'N/A')}</div>
+            <div><strong>Máquina:</strong> {pedido.get('Maquina', 'N/A')}</div>
+            <div><strong>Data:</strong> {pedido.get('Data', 'N/A')}</div>
+            <div><strong>Serial:</strong> {pedido.get('Serial', 'N/A')}</div>
+            <div><strong>Modelo:</strong> {pedido.get('Modelo', 'N/A')}</div>
+            <div><strong>Status:</strong> {pedido.get('Status', 'N/A')}</div>
         </div>
         """
         return preview_html
@@ -656,10 +640,10 @@ Status: {pedido['status']}
         pdf.ln(5)
         for idx, row in df_pedidos.iterrows():
             pdf.set_font("Arial", size=11)
-            pdf.cell(0, 8, f"Pedido: {row['Numero_Pedido']}  |  Data: {row['Data']}", ln=True)
+            pdf.cell(0, 8, f"Número: {row['Numero_Pedido']}  |  Semiacabado: {row['Semiacabado']}  |  Pagoda: {row['Pagoda']}", ln=True)
             pdf.set_font("Arial", size=10)
-            pdf.cell(0, 7, f"Serial: {row['Serial']}  |  Máquina: {row['Maquina']}  |  Posto: {row['Posto']}  |  Coordenada: {row['Coordenada']}", ln=True)
-            pdf.cell(0, 7, f"Modelo: {row['Modelo']}  |  OT: {row['OT']}  |  Semiacabado: {row['Semiacabado']}  |  Pagoda: {row['Pagoda']}", ln=True)
+            pdf.cell(0, 7, f"Posto: {row['Posto']}  |  Coordenada: {row['Coordenada']}  |  Máquina: {row['Maquina']}", ln=True)
+            pdf.cell(0, 7, f"Data: {row['Data']}  |  Serial: {row['Serial']}  |  Modelo: {row['Modelo']}", ln=True)
             pdf.cell(0, 7, f"Status: {row['Status']}", ln=True)
             pdf.ln(4)
             pdf.line(10, pdf.get_y(), 200, pdf.get_y())
